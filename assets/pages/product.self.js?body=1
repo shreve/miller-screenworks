@@ -1,0 +1,33 @@
+(function() {
+  var color, colors, fn, forge_path, i, image, label, len, link, set_color;
+
+  if (window.location.pathname.match(/\/products\/\w+/)) {
+    image = document.getElementsByClassName('product__image')[0];
+    link = image.parentNode;
+    label = document.getElementsByClassName('product__color-label')[0];
+    forge_path = function(old_path, new_color_id) {
+      return old_path.replace(/_\d+/, "_" + new_color_id);
+    };
+    set_color = function(color) {
+      var path;
+      path = forge_path(image.src, color.getAttribute('data-id'));
+      image.src = path;
+      link.href = path;
+      return label.innerHTML = color.innerHTML;
+    };
+    colors = document.getElementsByClassName('product__color');
+    fn = function(color) {
+      color.addEventListener("mouseover", function() {
+        return set_color(color);
+      });
+      return color.addEventListener("touchstart", function() {
+        return set_color(color);
+      });
+    };
+    for (i = 0, len = colors.length; i < len; i++) {
+      color = colors[i];
+      fn(color);
+    }
+  }
+
+}).call(this);

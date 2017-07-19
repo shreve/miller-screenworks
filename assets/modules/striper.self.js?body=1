@@ -1,0 +1,31 @@
+(function() {
+  window.Striper = {
+    init: function() {
+      var stripe;
+      if (S('script[src="https://js.stripe.com/v2/"]').length === 0) {
+        stripe = E('script', {
+          type: 'text/javascript',
+          src: 'https://js.stripe.com/v2/'
+        });
+        stripe.onload = function() {
+          return Stripe.setPublishableKey(S('meta[name="stripe-key"]')[0].getAttribute('content'));
+        };
+        return document.head.appendChild(stripe);
+      }
+    },
+    token: function(options) {
+      options.values.number = options.values.number.replace(/\s/g, '');
+      options.values.address_country = "US";
+      return Stripe.card.createToken(options.values, function(status, response) {
+        options.complete || (options.complete = (function() {}));
+        options.complete(response);
+        if (response.error) {
+          return options.error(response);
+        } else {
+          return options.success(response);
+        }
+      });
+    }
+  };
+
+}).call(this);

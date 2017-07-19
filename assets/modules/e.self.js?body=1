@@ -1,0 +1,16 @@
+(function() {
+  window.E = function(tag, options) {
+    var attr, el, value;
+    el = document.createElement(tag);
+    for (attr in options) {
+      value = options[attr];
+      if (attr === 'html') {
+        el.innerHTML = value;
+      } else {
+        el.setAttribute(attr, value);
+      }
+    }
+    return el;
+  };
+
+}).call(this);

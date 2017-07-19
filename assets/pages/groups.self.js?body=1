@@ -1,0 +1,162 @@
+(function() {
+  var startup;
+
+  if (window.location.pathname.match(/^\/groups\/\d+\/.+/)) {
+    Group.find = function(id) {
+      var i, len, product, ref;
+      ref = this.products;
+      for (i = 0, len = ref.length; i < len; i++) {
+        product = ref[i];
+        if (product.id === parseInt(id)) {
+          return product;
+        }
+      }
+    };
+    Group.update_image = function() {
+      var link, path;
+      path = this.product.photo.url;
+      this.photo || (this.photo = S('.group__photo')[0]);
+      link = this.photo.parentNode;
+      this.photo.src = path;
+      return link.href = path;
+    };
+    Group.sizes = ['XS', 'S', 'M', 'L', 'XL', '2X', '3X', '4X', '5X'];
+    Group.update_sizes = function() {
+      var bounds, i, label, len, ref, results, select, size, sizes;
+      sizes = this.product.product.sizes;
+      bounds = sizes.split('-');
+      select = document.getElementById('line_item_size');
+      select.innerHTML = '';
+      ref = this.sizes.slice(this.sizes.indexOf(bounds[0]), this.sizes.indexOf(bounds[1]) + 1);
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        size = ref[i];
+        if (label = this.product.priced_size_choices[size]) {
+          results.push(select.appendChild(E('option', {
+            html: label,
+            value: size
+          })));
+        } else {
+          results.push(void 0);
+        }
+      }
+      return results;
+    };
+    Group.update_colors = function() {
+      var block, color, i, indicator, input, label, len, ref, results, wrapper;
+      wrapper = S('#line_item_color')[0];
+      wrapper.innerHTML = '';
+      ref = this.product.colors;
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        color = ref[i];
+        block = E('div', {
+          "class": 'input--color ' + color.name.replace(/\s+/g, '-').toLowerCase(),
+          style: 'background: #' + color.hex
+        });
+        input = E('input', {
+          type: 'radio',
+          id: 'line_item_color_id_' + color.id,
+          name: 'line_item[color_id]',
+          value: color.id
+        });
+        label = E('label', {
+          "for": 'line_item_color_id_' + color.id,
+          html: color.name
+        });
+        indicator = E('div', {
+          "class": 'indicator'
+        });
+        block.appendChild(input);
+        block.appendChild(indicator);
+        block.appendChild(label);
+        results.push(wrapper.appendChild(block));
+      }
+      return results;
+    };
+    Group.update_options = function() {
+      var i, input, inputs, len, option, ref, results, selected;
+      ref = S('.input--option');
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        option = ref[i];
+        selected = parseInt(option.getAttribute('data-product')) === this.product.id;
+        inputs = S('input,select', option);
+        option.classList.toggle('hide', !selected);
+        results.push((function() {
+          var j, len1, results1;
+          results1 = [];
+          for (j = 0, len1 = inputs.length; j < len1; j++) {
+            input = inputs[j];
+            results1.push(input.disabled = !selected);
+          }
+          return results1;
+        })());
+      }
+      return results;
+    };
+    startup = function() {
+      var alert, form, group_photo, product_select, update_to_selected_product;
+      product_select = document.getElementById('line_item_group_product_id');
+      group_photo = S('.group__photo')[0];
+      group_photo.outerHTML = '<a href="#">' + group_photo.outerHTML + '</a>';
+      update_to_selected_product = function() {
+        Group.product = Group.find(this.value);
+        Group.update_image();
+        Group.update_sizes();
+        Group.update_colors();
+        return Group.update_options();
+      };
+      product_select.addEventListener('change', update_to_selected_product);
+      update_to_selected_product.call(product_select);
+      form = document.getElementById('new_line_item');
+      alert = S('.alert-box')[0];
+      alert.classList.add('hide');
+      return form.addEventListener('submit', function(event) {
+        var i, len, node, ref;
+        event.preventDefault();
+        ref = S('.field_with_errors');
+        for (i = 0, len = ref.length; i < len; i++) {
+          node = ref[i];
+          node.classList.remove('field_with_errors');
+        }
+        alert.classList.add('hide');
+        return form.async_submit({
+          json: true,
+          complete: function() {
+            return Order.update();
+          },
+          error: function(data) {
+            var count, error, errors, field, input, j, len1, ref1;
+            if (typeof data === "string") {
+              data = JSON.parse(data);
+            }
+            alert.innerHTML = '';
+            count = 0;
+            ref1 = data.errors;
+            for (field in ref1) {
+              errors = ref1[field];
+              input = S('#line_item_' + field);
+              if (input.length > 0) {
+                input[0].parentNode.classList.add('field_with_errors');
+              }
+              if (count > 0) {
+                alert.innerHTML += '. ';
+              }
+              alert.innerHTML += field.capitalize();
+              for (j = 0, len1 = errors.length; j < len1; j++) {
+                error = errors[j];
+                alert.innerHTML += ' ' + error;
+                console.log(error);
+              }
+              count++;
+            }
+            return alert.classList.remove('hide');
+          }
+        });
+      });
+    };
+    startup();
+  }
+
+}).call(this);

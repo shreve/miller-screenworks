@@ -1,0 +1,126 @@
+(function() {
+  var Style;
+
+  Style = {
+    name: 'Style',
+    rules: {},
+    elements: {},
+    currentId: 1,
+    specialKeys: ['only', 'except'],
+    init: function() {
+      this.sheet = document.getElementById('javascript-styles');
+      this.rules = {};
+      this.elements = {};
+      return this.currentId = 1;
+    },
+    addRule: function(selector, properties, scope) {
+      if (scope == null) {
+        scope = 0;
+      }
+      selector = this.__normalizeSelector__(selector);
+      if (selector) {
+        this.rules[selector] = properties;
+      } else {
+        console.log("Can't add rule; Selector could not be converted to a string.", selector, properties);
+      }
+      return !!this.update();
+    },
+    removeRule: function(selector, property) {
+      var base;
+      selector = this.__normalizeSelector__(selector);
+      if (selector) {
+        (base = this.rules)[selector] || (base[selector] = {});
+        delete this.rules[selector][property];
+      } else {
+        console.log("Can't remove rule; Selector could not be converted to a string.", selector, property);
+      }
+      return !!this.update();
+    },
+    update: function() {
+      var css, properties, rule, selector, self;
+      self = this;
+      css = (function() {
+        var ref, results;
+        ref = this.rules;
+        results = [];
+        for (selector in ref) {
+          properties = ref[selector];
+          rule = selector + " { " + (self.objectToCSS(properties)) + " }";
+          results.push(self.mediaQueryify(rule, properties));
+        }
+        return results;
+      }).call(this);
+      return this.sheet.innerHTML = css.join("\n");
+    },
+    clear: function() {
+      this.rules = {};
+      this.currentId = 1;
+      return this.update();
+    },
+    objectToCSS: function(object) {
+      var css, key, self, value;
+      self = this;
+      css = "";
+      for (key in object) {
+        value = object[key];
+        if (self.specialKeys.indexOf(key) === -1) {
+          css += "\n" + key + ": " + value + ";";
+        }
+      }
+      return css;
+    },
+    selectorFor: function(element, parentsToInclude) {
+      var $element, id, parents, selector, self;
+      self = this;
+      if (element instanceof jQuery) {
+        element = element[0];
+      }
+      $element = $(element);
+      id = this.currentId++;
+      $element.attr('data-style-id', id);
+      selector = (element.tagName.downcase()) + "[data-style-id=\"" + id + "\"]";
+      if (parentsToInclude > 0) {
+        parents = $element.parents();
+        parentsToInclude.times(function(i) {
+          return selector = self.__tagAndClassSelector__(parents[i]) + ' ' + selector;
+        });
+      }
+      return selector;
+    },
+    mediaQueryify: function(rule, properties) {
+      var except, max, min, next, only, query;
+      query = "@media only screen";
+      if (properties.hasOwnProperty('only')) {
+        only = properties.only;
+        next = Sugu.media_sizes[Sugu.media_sizes.indexOf(only) + 1];
+        min = S(".foundation-mq-" + only).css('width');
+        max = S(".foundation-mq-" + next).css('width');
+        query = [query, "(min-width: " + min + ")", "(max-width: " + max + ")"].join(' and ');
+        rule = query + " { \n  " + rule + " }";
+      } else if (properties.hasOwnProperty('except')) {
+        except = properties.except;
+      }
+      return rule;
+    },
+    __normalizeSelector__: function(selector) {
+      if (selector instanceof HTMLElement) {
+        return this.selectorFor(selector, scope);
+      } else if (typeof selector === "string") {
+        return selector;
+      } else {
+        return false;
+      }
+    },
+    __tagAndClassSelector__: function(element) {
+      var classes, tagname;
+      tagname = element.tagName.downcase().trim();
+      classes = element.className.split(' ').join('.').trim();
+      return [tagname, classes].removeBlank().join('.');
+    }
+  };
+
+  window.Style = Style;
+
+  Style.init();
+
+}).call(this);

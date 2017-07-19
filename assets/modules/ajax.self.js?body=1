@@ -1,0 +1,83 @@
+(function() {
+  var Ajax, elipses;
+
+  Ajax = function(options) {
+    var complete, data, error, key, out, request, send, success, val;
+    if (!options.hasOwnProperty('type')) {
+      options.type = 'GET';
+    }
+    data = (function() {
+      var ref, results;
+      ref = options.data;
+      results = [];
+      for (key in ref) {
+        val = ref[key];
+        results.push(encodeURIComponent(key) + "=" + encodeURIComponent(val));
+      }
+      return results;
+    })();
+    if (data.length > 0) {
+      options.url = options.url + '?' + data.join("&");
+    }
+    request = new XMLHttpRequest();
+    request.open(options.type, options.url, true);
+    out = function(data) {};
+    success = options.success || out;
+    error = options.error || out;
+    complete = options.complete || out;
+    request.onload = function() {
+      var ref;
+      if ((200 <= (ref = request.status) && ref < 400)) {
+        if (request.status === 204) {
+          data = {
+            status: "ok"
+          };
+        } else if (options.json || options.url.match(/\.json$/)) {
+          data = JSON.parse(request.responseText);
+        } else {
+          data = request.responseText;
+        }
+        success(data);
+        return complete(data);
+      } else {
+        error(request.responseText);
+        return complete(request.responseText);
+      }
+    };
+    request.onerror = function() {
+      error(request.responseText);
+      return complete(request.responseText);
+    };
+    send = function() {
+      if (options.type === 'POST') {
+        request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+        return request.send(data.join('&'));
+      } else {
+        return request.send();
+      }
+    };
+    if (options.slow) {
+      return setTimeout(send, 3000);
+    } else {
+      return send();
+    }
+  };
+
+  elipses = function(element, text) {
+    element.value = text;
+    return setInterval(function() {
+      var count;
+      count = (element.value.match(/\./g) || []).length;
+      if (count < 3) {
+        return element.value += '.';
+      } else {
+        return element.value = text;
+      }
+    }, 500);
+  };
+
+  window.A = Ajax;
+
+  window.A.elipses = elipses;
+
+}).call(this);

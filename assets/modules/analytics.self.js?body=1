@@ -1,0 +1,16 @@
+(function() {
+  window.GoogleAnalyticsObject = 'ga';
+
+  window.ga = function() {
+    return this.ga.q.push(arguments);
+  };
+
+  window.ga.q = [];
+
+  window.ga.l = 1 * new Date();
+
+  ga('create', 'UA-37973729-1', 'auto');
+
+  ga('send', 'pageview');
+
+}).call(this);

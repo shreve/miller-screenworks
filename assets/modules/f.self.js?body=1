@@ -1,0 +1,28 @@
+(function() {
+  var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+  this.F = function(form, except) {
+    var i, input, len, ref, ref1, values;
+    if (except == null) {
+      except = [];
+    }
+    values = {};
+    ref = S('input,select,textarea', form);
+    for (i = 0, len = ref.length; i < len; i++) {
+      input = ref[i];
+      if (!((ref1 = input.name, indexOf.call(except, ref1) >= 0) || input.disabled === true)) {
+        if (input.type === 'radio' || input.type === 'checkbox') {
+          if (input.checked) {
+            values[input.name] = input.value;
+          }
+        } else {
+          values[input.name] = input.value;
+        }
+      }
+    }
+    return values;
+  };
+
+  this.F.blacklist = ['utf8', 'authenticity_token', 'commit'];
+
+}).call(this);

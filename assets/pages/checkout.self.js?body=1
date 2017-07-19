@@ -1,0 +1,176 @@
+(function() {
+  var alert, card_submit_handler, completed, customer_form, form, i, input, j, len, len1, quantity, ref, ref1, submit, timer, token, updateQuantity;
+
+  if (window.location.pathname === '/checkout') {
+    Striper.init();
+
+    /*
+     *
+     *   ORDER SUMMARY
+     *
+     */
+    updateQuantity = function(input) {
+      var spinner;
+      if (input.getAttribute('data-value') !== input.value) {
+        spinner = input.previousSibling;
+        spinner.classList.remove('hidden');
+        input.parentNode.async_submit({
+          json: true,
+          complete: function() {
+            spinner.classList.add('hidden');
+            input.removeAttribute('disabled');
+            return Order.update();
+          }
+        });
+        input.setAttribute('disabled', true);
+        return input.setAttribute('data-value', this.value);
+      }
+    };
+    ref = S('[name="line_item[quantity]"]');
+    for (i = 0, len = ref.length; i < len; i++) {
+      quantity = ref[i];
+      quantity.removeAttribute('disabled');
+      quantity.addEventListener('focus', function(event) {
+        return this.setAttribute('data-value', this.value);
+      });
+      quantity.addEventListener('blur', function(event) {
+        return updateQuantity(this);
+      });
+      timer = null;
+      quantity.addEventListener('keyup', function(event) {
+        return timer = setTimeout(((function(_this) {
+          return function() {
+            return updateQuantity(_this);
+          };
+        })(this)), 1500);
+      });
+      quantity.addEventListener('keydown', function(event) {
+        var which;
+        which = event.keyCode || event.which;
+        if (which === 13) {
+          event.preventDefault();
+          updateQuantity(this);
+        }
+        return clearTimeout(timer);
+      });
+    }
+
+    /*
+     *
+     *   SHIPMENT INFORMATION
+     *
+     */
+    customer_form = S('form.edit_customer')[0];
+    customer_form.removeAttribute('disabled');
+    completed = function(form) {
+      var key, ref1, value;
+      ref1 = F(form);
+      for (key in ref1) {
+        value = ref1[key];
+        if (value === "") {
+          return false;
+        }
+      }
+      return true;
+    };
+    ref1 = S('input,textarea,select', customer_form);
+    for (j = 0, len1 = ref1.length; j < len1; j++) {
+      input = ref1[j];
+      input.addEventListener('blur', function(event) {
+        var status;
+        if (completed(customer_form)) {
+          status = S('.status')[0];
+          status.classList.remove('hide');
+          customer_form.async_submit({
+            json: true,
+            complete: function() {
+              customer_form.removeAttribute('disabled');
+              return status.classList.add('hide');
+            },
+            success: function(data) {
+              return Order.update();
+            }
+          });
+          return customer_form.disabled = true;
+        }
+      });
+    }
+
+    /*
+     *
+     *   PAYMENT INFORMATION
+     *
+     */
+    form = S('form.edit_order')[0];
+    submit = S('input[type="submit"]', form)[0];
+    alert = S('.alert', form)[0];
+    token = S('#stripe_token', form)[0];
+    submit.removeAttribute('disabled');
+    card_submit_handler = function(event) {
+      var elipses, k, len2, node, ref2, values;
+      event.preventDefault();
+      submit.disabled = true;
+      values = F(form);
+      ref2 = S('.field_with_errors');
+      for (k = 0, len2 = ref2.length; k < len2; k++) {
+        node = ref2[k];
+        node.classList.remove('field_with_errors');
+      }
+      alert.classList.add('hide');
+      if (values.stripe_token) {
+        elipses = A.elipses(submit, "Submitting Order");
+        return form.async_submit({
+          json: true,
+          complete: function() {
+            clearTimeout(elipses);
+            submit.value = "Submit Order";
+            return submit.removeAttribute('disabled');
+          },
+          success: function(data) {
+            var l, len3, ref3, set;
+            console.log(data);
+            if (data.status === "succeeded") {
+              ref3 = S('.order-summary,.shipment-information,.payment-information');
+              for (l = 0, len3 = ref3.length; l < len3; l++) {
+                set = ref3[l];
+                set.classList.add('hide');
+              }
+              return S('.success-message')[0].classList.remove('hide');
+            } else {
+              alert.innerHTML = "Something went wrong submitting your payment. Please check your payment details and try again.";
+              return alert.classList.remove('hide');
+            }
+          },
+          error: function(data) {
+            alert.innerHTML = "Something went wrong submitting your payment. Please check your payment details and try again.";
+            return alert.classList.remove('hide');
+          }
+        });
+      } else {
+        elipses = A.elipses(submit, "Saving Card");
+        return Striper.token({
+          values: values,
+          complete: function() {
+            return clearTimeout(elipses);
+          },
+          success: function(response) {
+            token.value = response.id;
+            return card_submit_handler(event);
+          },
+          error: function(response) {
+            submit.value = "Submit Order";
+            if (response.error.param) {
+              input = S('#' + response.error.param)[0];
+              input.parentNode.classList.add('field_with_errors');
+            }
+            alert.innerHTML = response.error.message;
+            alert.classList.remove('hide');
+            return submit.removeAttribute('disabled');
+          }
+        });
+      }
+    };
+    form.addEventListener('submit', card_submit_handler);
+  }
+
+}).call(this);

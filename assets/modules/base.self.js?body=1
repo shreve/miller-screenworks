@@ -1,0 +1,41 @@
+(function() {
+  HTMLFormElement.prototype.async_submit = function(options) {
+    if (options == null) {
+      options = {};
+    }
+    return A({
+      url: this.action,
+      type: this.method.toUpperCase(),
+      data: F(this),
+      json: options.json || false,
+      complete: options.complete || function(data) {
+        var error;
+        try {
+          return eval(data);
+        } catch (error1) {
+          error = error1;
+        }
+      },
+      error: options.error,
+      success: options.success
+    });
+  };
+
+  HTMLElement.prototype["delete"] = function() {
+    this.parentNode.removeChild(this);
+    return this;
+  };
+
+  String.prototype.capitalize = function() {
+    return this[0].toUpperCase() + this.slice(1);
+  };
+
+  DOMTokenList.prototype.toggle = function(className, condition) {
+    if (condition) {
+      return this.add(className);
+    } else {
+      return this.remove(className);
+    }
+  };
+
+}).call(this);

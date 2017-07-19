@@ -1,0 +1,128 @@
+(function() {
+  var card, card_submit_handler, invoice, invoice_submit_handler;
+
+  if (window.location.pathname === "/pay") {
+    Striper.init();
+    invoice = {
+      form: document.getElementById('invoice-form'),
+      number: document.getElementById('invoice_number'),
+      submit: S('#invoice-form input[type="submit"]')[0],
+      due: S('.order-status__due')[0],
+      memo: S('.order-status__memo')[0]
+    };
+    card = {
+      form: document.getElementById('card-form'),
+      token: document.getElementById('stripe_token'),
+      submit: S('#card-form input[type="submit"]')[0],
+      fieldset: S('.card-fieldset')[0],
+      alert: E('div', {
+        "class": 'alert-box alert hide'
+      })
+    };
+    card.form.insertBefore(card.alert, card.form.firstChild);
+    invoice.form.reset();
+    invoice.submit.removeAttribute('disabled');
+    card.submit.removeAttribute('disabled');
+    card.token.value = '';
+    invoice_submit_handler = function(event) {
+      var elipses;
+      invoice.submit.setAttribute('disabled', true);
+      event.preventDefault();
+      if (invoice.number.value.trim() === "") {
+        invoice.due.innerHTML = "";
+        invoice.memo.innerHTML = "We can't find an order with no number.";
+        card.fieldset.classList.add('hide');
+        return invoice.submit.removeAttribute('disabled');
+      } else {
+        invoice.submit.value = "Checking Status";
+        elipses = A.elipses(invoice.submit, "Checking Status");
+        return A({
+          url: '/invoices/' + invoice.number.value,
+          json: true,
+          complete: function(data) {
+            clearTimeout(elipses);
+            invoice.submit.value = "Check Status";
+            return invoice.submit.removeAttribute('disabled');
+          },
+          success: function(data) {
+            invoice.due.innerHTML = "$" + (data.amount / 100).toFixed(2);
+            invoice.memo.innerHTML = data.memo;
+            if (data.paid_at) {
+              invoice.due.innerHTML += "  <b>Paid!</b>";
+              return card.fieldset.classList.add('hide');
+            } else {
+              invoice.memo.innerHTML += "<br>You can pay with a credit or debt card here.";
+              card.form.action = '/invoices/' + invoice.number.value + '.json';
+              return card.fieldset.classList.remove('hide');
+            }
+          },
+          error: function(data) {
+            invoice.due.innerHTML = "";
+            invoice.memo.innerHTML = "We couldn't find an invoice with that number.";
+            return card.fieldset.classList.add('hide');
+          }
+        });
+      }
+    };
+    card_submit_handler = function(event) {
+      var elipses, i, len, node, ref, values;
+      event.preventDefault();
+      card.submit.setAttribute('disabled', true);
+      values = F(card.form);
+      values.number = values.number.replace(/\s/g, '');
+      values.address_country = "US";
+      ref = S('.field_with_errors');
+      for (i = 0, len = ref.length; i < len; i++) {
+        node = ref[i];
+        node.classList.remove('field_with_errors');
+      }
+      card.alert.classList.add('hide');
+      elipses = A.elipses(card.submit, "Paying");
+      if (values.stripe_token) {
+        return card.form.async_submit({
+          complete: function() {
+            invoice_submit_handler(event);
+            clearTimeout(elipses);
+            card.submit.value = "Pay Now";
+            return card.submit.removeAttribute('disabled');
+          },
+          success: function(data) {
+            if (data.status === "succeeded") {
+              card.fieldset.classList.add('hide');
+              return S('.success-message')[0].classList.remove('hide');
+            } else {
+              card.alert.innerHTML = "Something went wrong submitting your payment. Please check your payment details and try again.";
+              return card.alert.classList.remove('hide');
+            }
+          },
+          error: function(data) {
+            card.alert.innerHTML = "Something went wrong submitting your payment. Please check your payment details and try again.";
+            return card.alert.classList.remove('hide');
+          }
+        });
+      } else {
+        return Striper.token({
+          values: values,
+          success: function(response) {
+            card.token.value = response.id;
+            clearTimeout(elipses);
+            return card_submit_handler(event);
+          },
+          error: function(response) {
+            var input;
+            if (response.error.param) {
+              input = S('#' + response.error.param)[0];
+              input.parentNode.classList.add('field_with_errors');
+            }
+            card.alert.innerHTML = response.error.message;
+            card.alert.classList.remove('hide');
+            return card.submit.removeAttribute('disabled');
+          }
+        });
+      }
+    };
+    invoice.form.addEventListener("submit", invoice_submit_handler);
+    card.form.addEventListener("submit", card_submit_handler);
+  }
+
+}).call(this);

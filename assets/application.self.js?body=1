@@ -1,0 +1,10 @@
+(function() {
+
+document.addEventListener("turbolinks:load", function() {
+  if (document.querySelector('.notice')) { return }
+  var notice = E('p', { class: 'notice', html: 'This site is no longer functional. This is an archived version of the site, which exists only as a design portfolio piece. The Miller family decided to close up shop in mid-2017.' });
+
+  document.body.insertBefore(notice, document.body.firstChild);
+})
+
+}).call(this);

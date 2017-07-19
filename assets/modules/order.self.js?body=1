@@ -1,0 +1,77 @@
+(function() {
+  window.Order = {
+    quantity_in_cart: 0,
+    total_due: 0,
+    update: function() {
+      return A({
+        url: '/orders.json',
+        complete: (function(_this) {
+          return function(data) {
+            Order.line_items = data.line_items;
+            Order.item_count = data.item_count;
+            Order.subtotal = data.subtotal;
+            Order.shipping_cost = data.shipping_cost;
+            Order.total_due = data.total_due;
+            Order.tax = data.tax;
+            Order.tax_rate = data.tax_rate;
+            _this._render_buttons();
+            return _this._render_summary();
+          };
+        })(this)
+      });
+    },
+    _render_buttons: function() {
+      var button, i, len, ref, results;
+      ref = S('.button--checkout');
+      results = [];
+      for (i = 0, len = ref.length; i < len; i++) {
+        button = ref[i];
+        button.innerHTML = button.innerHTML.replace(/\s+\(\d+\)/g, '');
+        if (this.item_count === 0) {
+          results.push(button.classList.add('hide'));
+        } else {
+          button.innerHTML += " (" + this.item_count + ")";
+          results.push(button.classList.remove('hide'));
+        }
+      }
+      return results;
+    },
+    _render_summary: function() {
+      var i, j, len, len1, line_item, ref, ref1, root, row;
+      if (window.location.pathname === '/checkout') {
+        root = S('.order-summary table')[0];
+        ref = S('tbody tr', root);
+        for (i = 0, len = ref.length; i < len; i++) {
+          row = ref[i];
+          ref1 = this.line_items;
+          for (j = 0, len1 = ref1.length; j < len1; j++) {
+            line_item = ref1[j];
+            if (parseInt(row.getAttribute('data-id')) === line_item.id) {
+              S('.subtotal', row)[0].innerHTML = "$" + (line_item.subtotal / 100.0).toFixed(2);
+              S('[name="line_item[quantity]"]', row)[0].value = line_item.quantity;
+              if (line_item.quantity === 0) {
+                row.classList.add('line_item--inactive');
+              } else {
+                row.classList.remove('line_item--inactive');
+              }
+            }
+          }
+        }
+        if (this.tax === 0) {
+          S('.tax-row', root)[0].classList.add('hide');
+        } else {
+          S('.tax-row', root)[0].classList.remove('hide');
+        }
+        S('.item_count', root)[0].innerHTML = 'x' + this.item_count;
+        S('.order_subtotal', root)[0].innerHTML = "$" + (this.subtotal / 100.0).toFixed(2);
+        S('.tax-rate', root)[0].innerHTML = "Tax @ " + ((this.tax_rate * 100).toFixed(1)) + "%";
+        S('.tax', root)[0].innerHTML = "$" + (this.tax / 100.0).toFixed(2);
+        S('.shipping_cost', root)[0].innerHTML = "$" + (this.shipping_cost / 100.0).toFixed(2);
+        return S('.total_due', root)[0].innerHTML = "$" + (this.total_due / 100.0).toFixed(2);
+      }
+    }
+  };
+
+  Order.update();
+
+}).call(this);

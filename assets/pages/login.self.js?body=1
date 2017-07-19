@@ -1,0 +1,21 @@
+(function() {
+  var password, toggle, togglePassword;
+
+  if (window.location.pathname === "/login") {
+    if (toggle = document.getElementById('session_hide_password')) {
+      password = document.getElementById('session_password');
+      togglePassword = function(toggle) {
+        if (toggle.checked) {
+          return password.type = "password";
+        } else {
+          return password.type = "text";
+        }
+      };
+      togglePassword(this);
+      toggle.addEventListener("change", function() {
+        return togglePassword(this);
+      });
+    }
+  }
+
+}).call(this);

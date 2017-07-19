@@ -1,0 +1,21 @@
+(function() {
+  var fn, i, len, message, messages;
+
+  if (window.location.pathname === "/admin/messages") {
+    messages = document.getElementsByClassName('message');
+    fn = function(message) {
+      return message.addEventListener('click', function(event) {
+        var link;
+        if (event.target.tagName !== "A") {
+          link = message.querySelector('.message__from a').href;
+          return window.location = link;
+        }
+      });
+    };
+    for (i = 0, len = messages.length; i < len; i++) {
+      message = messages[i];
+      fn(message);
+    }
+  }
+
+}).call(this);

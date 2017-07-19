@@ -1,0 +1,29 @@
+(function() {
+  var i, j, k, len, len1, len2, list, maxHeight, name, product, products, type, types;
+
+  if (window.location.pathname === "/products") {
+    products = document.getElementsByClassName('product--preview');
+    for (i = 0, len = products.length; i < len; i++) {
+      product = products[i];
+      product.addEventListener("click", function(e) {
+        return window.location = this.getElementsByTagName('a')[0].href;
+      });
+    }
+    types = ['shirts', 'polos', 'sweatshirts', 'sweatpants'];
+    for (j = 0, len1 = types.length; j < len1; j++) {
+      type = types[j];
+      list = document.getElementsByClassName(type)[0];
+      products = list.getElementsByClassName('product');
+      maxHeight = 0;
+      for (k = 0, len2 = products.length; k < len2; k++) {
+        product = products[k];
+        name = product.getElementsByClassName('product__name')[0];
+        maxHeight = Math.max(maxHeight, name.offsetHeight);
+      }
+      Style.addRule("." + type + " .product__name", {
+        'min-height': maxHeight + 'px'
+      });
+    }
+  }
+
+}).call(this);
